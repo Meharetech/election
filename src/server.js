@@ -19,7 +19,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', // Allow all origins for tactical flexibility
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use('/uploads', express.static('uploads'));
@@ -40,6 +45,17 @@ app.get('/', (req, res) => {
 // Health check route
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date() });
+});
+
+// Tactical Error Handlers: Catching over-capacity deployments
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.too.large' || err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      message: 'MISSION_ABORTED: PAYLOAD_EXCEEDS_CAPACITY (Max 100MB)'
+    });
+  }
+  res.status(500).json({ success: false, message: 'INTERNAL_CORE_ERROR' });
 });
 
 app.listen(PORT, () => {
