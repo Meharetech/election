@@ -34,15 +34,19 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Load routes
 const auth = require('./routes/auth');
 const campaigns = require('./routes/campaigns');
+const groupScraper = require('./routes/groupScraper');
+const profileScraper = require('./routes/profileScraper');
 
 // Mount routes
 app.use('/api/auth', auth);
 app.use('/api/campaigns', campaigns);
+app.use('/api/group-scraper', groupScraper);
+app.use('/api/profile-scraper', profileScraper);
 
 // Basic Route
 app.get('/', (req, res) => {
@@ -56,13 +60,22 @@ app.get('/health', (req, res) => {
 
 // Tactical Error Handlers: Catching over-capacity deployments
 app.use((err, req, res, next) => {
+  // Ensure CORS headers are present even on error responses
+  res.header('Access-Control-Allow-Origin', '*');
+  
   if (err.type === 'entity.too.large' || err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({
       success: false,
       message: 'MISSION_ABORTED: PAYLOAD_EXCEEDS_CAPACITY (Max 100MB)'
     });
   }
-  res.status(500).json({ success: false, message: 'INTERNAL_CORE_ERROR' });
+  
+  console.error('SERVER_EXCEPTION:', err);
+  res.status(500).json({ 
+    success: false, 
+    message: 'INTERNAL_CORE_ERROR',
+    details: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
 app.listen(PORT, () => {
