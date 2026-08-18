@@ -11,6 +11,11 @@ exports.uploadExcel = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please upload an Excel file' });
     }
 
+    let uploadedBy = req.user.id;
+    if (req.user.role === 'admin' && (req.body.userId || req.query.userId)) {
+      uploadedBy = req.body.userId || req.query.userId;
+    }
+
     const filePath = req.file.path;
     const workbook = xlsx.readFile(filePath);
     const sheetName = workbook.SheetNames[0];
@@ -89,7 +94,7 @@ exports.uploadExcel = async (req, res) => {
         url: formattedUrl,
         contactInfo,
         notes,
-        uploadedBy: req.user.id
+        uploadedBy
       });
     }
 
@@ -121,7 +126,15 @@ exports.uploadExcel = async (req, res) => {
 // @access  Private
 exports.getProfileLinks = async (req, res) => {
   try {
-    const links = await ProfileScraper.find().populate('uploadedBy', 'name email').sort({ createdAt: -1 });
+    const query = {};
+    if (req.user.role === 'admin') {
+      if (req.query.userId) {
+        query.uploadedBy = req.query.userId;
+      }
+    } else {
+      query.uploadedBy = req.user.id;
+    }
+    const links = await ProfileScraper.find(query).populate('uploadedBy', 'name email').sort({ createdAt: -1 });
     res.status(200).json({
       success: true,
       count: links.length,

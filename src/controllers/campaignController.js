@@ -34,7 +34,11 @@ exports.createCampaign = async (req, res) => {
 // @access  Private
 exports.getCampaigns = async (req, res) => {
   try {
-    const campaigns = await Campaign.find({ user: req.user.id }).sort({ createdAt: -1 });
+    const query = { user: req.user.id };
+    if (req.query.platform) {
+      query.platform = req.query.platform;
+    }
+    const campaigns = await Campaign.find(query).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -51,7 +55,14 @@ exports.getCampaigns = async (req, res) => {
 // @access  Private/Admin
 exports.getAllCampaignsAdmin = async (req, res) => {
   try {
-    const campaigns = await Campaign.find().populate('user', 'name email').sort({ createdAt: -1 });
+    const query = {};
+    if (req.query.userId) {
+      query.user = req.query.userId;
+    }
+    if (req.query.platform) {
+      query.platform = req.query.platform;
+    }
+    const campaigns = await Campaign.find(query).populate('user', 'name email').sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -68,10 +79,31 @@ exports.getAllCampaignsAdmin = async (req, res) => {
 // @access  Private/Admin
 exports.updateCampaignStatus = async (req, res) => {
   try {
+    const path = require('path');
+    if (req.file) {
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      if (!['.xlsx', '.xls', '.csv', '.txt'].includes(ext)) {
+        const fs = require('fs');
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error('Error unlinking invalid proof file:', err);
+        }
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid file type. Only Excel (.xlsx, .xls), CSV (.csv), and Text (.txt) files are allowed for completion proof.' 
+        });
+      }
+    }
+
     const updateData = { 
       status: req.body.status,
-      completionFile: req.body.completionFile
+      completionFile: req.file ? req.file.filename : req.body.completionFile
     };
+
+    if (req.body.durationHours !== undefined) {
+      updateData.durationHours = Number(req.body.durationHours);
+    }
 
     if (req.body.status === 'running' || req.body.status === 'active') {
       updateData.startedAt = Date.now();
@@ -103,10 +135,14 @@ exports.updateCampaignStatus = async (req, res) => {
 // @access  Private
 exports.getUserStats = async (req, res) => {
   try {
-    const total = await Campaign.countDocuments({ user: req.user.id });
-    const pending = await Campaign.countDocuments({ user: req.user.id, status: 'pending' });
-    const running = await Campaign.countDocuments({ user: req.user.id, status: 'running' });
-    const complete = await Campaign.countDocuments({ user: req.user.id, status: 'complete' });
+    const query = { user: req.user.id };
+    if (req.query.platform) {
+      query.platform = req.query.platform;
+    }
+    const total = await Campaign.countDocuments(query);
+    const pending = await Campaign.countDocuments({ ...query, status: 'pending' });
+    const running = await Campaign.countDocuments({ ...query, status: 'running' });
+    const complete = await Campaign.countDocuments({ ...query, status: 'complete' });
 
     res.status(200).json({
       success: true,
@@ -127,14 +163,21 @@ exports.getUserStats = async (req, res) => {
 // @access  Private/Admin
 exports.getAdminStats = async (req, res) => {
   try {
-    const totalCampaigns = await Campaign.countDocuments();
-    const pending = await Campaign.countDocuments({ status: 'pending' });
-    const running = await Campaign.countDocuments({ status: 'running' });
-    const complete = await Campaign.countDocuments({ status: 'complete' });
+    const query = {};
+    if (req.query.userId) {
+      query.user = req.query.userId;
+    }
+    if (req.query.platform) {
+      query.platform = req.query.platform;
+    }
+    const totalCampaigns = await Campaign.countDocuments(query);
+    const pending = await Campaign.countDocuments({ ...query, status: 'pending' });
+    const running = await Campaign.countDocuments({ ...query, status: 'running' });
+    const complete = await Campaign.countDocuments({ ...query, status: 'complete' });
     
     // Also get user count (requires User model)
     const User = require('../models/User');
-    const totalUsers = await User.countDocuments();
+    const totalUsers = await User.countDocuments({ role: 'user' });
 
     res.status(200).json({
       success: true,

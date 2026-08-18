@@ -97,3 +97,74 @@ exports.getMe = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Get all registered users (Admin)
+// @route   GET /api/auth/users
+// @access  Private/Admin
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({ role: 'user' }).select('name email createdAt');
+    res.status(200).json({
+      success: true,
+      data: users
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Delete a user (Admin)
+// @route   DELETE /api/auth/users/:id
+// @access  Private/Admin
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    if (user.role === 'admin') {
+      return res.status(400).json({ success: false, message: 'Cannot delete an administrator account' });
+    }
+
+    const Campaign = require('../models/Campaign');
+    const RosterFile = require('../models/RosterFile');
+    const UserScraped = require('../models/UserScraped');
+    const ProfileScraper = require('../models/ProfileScraper');
+    const GroupScraper = require('../models/GroupScraper');
+
+    await Promise.all([
+      Campaign.deleteMany({ user: req.params.id }),
+      RosterFile.deleteMany({ uploadedBy: req.params.id }),
+      UserScraped.deleteMany({ uploadedBy: req.params.id }),
+      ProfileScraper.deleteMany({ uploadedBy: req.params.id }),
+      GroupScraper.deleteMany({ uploadedBy: req.params.id }),
+      User.findByIdAndDelete(req.params.id)
+    ]);
+
+    res.status(200).json({ success: true, message: 'User and all associated data deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Change user password (Admin)
+// @route   PUT /api/auth/users/:id/password
+// @access  Private/Admin
+exports.changeUserPassword = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(req.body.password, salt);
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

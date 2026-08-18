@@ -6,9 +6,14 @@ const campaignSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  platform: {
+    type: String,
+    enum: ['facebook', 'instagram'],
+    default: 'facebook'
+  },
   type: {
     type: String,
-    enum: ['post', 'story', 'group', 'comment', 'bulk', 'invite'],
+    enum: ['post', 'story', 'group', 'comment', 'bulk', 'invite', 'insta-story', 'insta-message', 'insta-share', 'insta-comment', 'insta-like', 'insta-group-msg'],
     required: true
   },
   campaignName: {
@@ -46,6 +51,10 @@ const campaignSchema = new mongoose.Schema({
   },
   completedAt: {
     type: Date
+  },
+  durationHours: {
+    type: Number,
+    default: 3
   },
   createdAt: {
     type: Date,

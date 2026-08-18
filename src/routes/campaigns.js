@@ -24,7 +24,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 100 * 1024 * 1024 } // 100 MB Limit
+  limits: { fileSize: 50 * 1024 * 1024 } // 50 MB Limit
 });
 
 const router = express.Router();
@@ -37,6 +37,6 @@ router.get('/user/stats', protect, getUserStats);
 // Admin Routes
 router.get('/admin/all', protect, authorize('admin'), getAllCampaignsAdmin);
 router.get('/admin/stats', protect, authorize('admin'), getAdminStats);
-router.put('/:id/status', protect, authorize('admin'), updateCampaignStatus);
+router.put('/:id/status', protect, authorize('admin'), upload.single('file'), updateCampaignStatus);
 
 module.exports = router;
