@@ -66,6 +66,7 @@ exports.uploadExcel = async (req, res) => {
 
     const records = [];
     const startIndex = 1; // start after header row
+    const uploadTime = new Date();
 
     const isMaybeUrl = (str) => {
       if (!str) return false;
@@ -110,7 +111,8 @@ exports.uploadExcel = async (req, res) => {
         location,
         joined,
         fileId: rosterFile._id,
-        uploadedBy
+        uploadedBy,
+        createdAt: uploadTime
       });
     }
 
