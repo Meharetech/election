@@ -41,6 +41,7 @@ const auth = require('./routes/auth');
 const campaigns = require('./routes/campaigns');
 const groupScraper = require('./routes/groupScraper');
 const profileScraper = require('./routes/profileScraper');
+const instaProfileScraper = require('./routes/instaProfileScraper');
 const userScraped = require('./routes/userScraped');
 
 // Mount routes
@@ -48,6 +49,7 @@ app.use('/api/auth', auth);
 app.use('/api/campaigns', campaigns);
 app.use('/api/group-scraper', groupScraper);
 app.use('/api/profile-scraper', profileScraper);
+app.use('/api/insta-profile-scraper', instaProfileScraper);
 app.use('/api/user-scraped', userScraped);
 
 // Basic Route
