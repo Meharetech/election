@@ -184,7 +184,7 @@ exports.getUserScrapedList = async (req, res) => {
       filter.uploadedBy = req.user.id;
     }
 
-    const list = await UserScraped.find(filter).populate('uploadedBy', 'name email').sort({ createdAt: -1 });
+    const list = await UserScraped.find(filter).populate('uploadedBy', 'name email').sort({ createdAt: -1, _id: 1 });
     res.status(200).json({
       success: true,
       count: list.length,

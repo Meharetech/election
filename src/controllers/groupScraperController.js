@@ -134,7 +134,7 @@ exports.getGroupLinks = async (req, res) => {
     } else {
       query.uploadedBy = req.user.id;
     }
-    const links = await GroupScraper.find(query).populate('uploadedBy', 'name email').sort({ createdAt: -1 });
+    const links = await GroupScraper.find(query).populate('uploadedBy', 'name email').sort({ createdAt: -1, _id: 1 });
     res.status(200).json({
       success: true,
       count: links.length,
